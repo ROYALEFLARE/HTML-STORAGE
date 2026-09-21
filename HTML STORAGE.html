@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07131f">
+<title>HTML STORAGE — MR ROYALEFLARE</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#06111b;color:#eafcff;min-height:100vh}
+header{position:sticky;top:0;z-index:5;background:rgba(6,17,27,.94);backdrop-filter:blur(12px);padding:22px 18px 15px;border-bottom:1px solid #123344}
+h1{margin:0;font-size:29px;letter-spacing:2px;color:#5eeaff}header small{display:block;margin-top:4px;color:#8aa7b5;letter-spacing:1px}
+main{padding:20px 16px 100px;max-width:850px;margin:auto}
+.toolbar{display:flex;gap:9px;align-items:center;margin-bottom:16px}.search{flex:1;background:#0a1d2b;border:1px solid #183b4e;color:white;border-radius:12px;padding:12px 14px;outline:none}.search:focus{border-color:#35dfff}
+.empty{text-align:center;border:1px dashed #245267;border-radius:18px;padding:45px 20px;color:#7793a1}.empty b{color:#5eeaff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.card{background:linear-gradient(145deg,#0b202e,#091722);border:1px solid #183c4d;border-radius:16px;padding:15px;cursor:pointer;transition:.18s;min-height:135px}.card:hover{transform:translateY(-2px);border-color:#32dfff}
+.icon{width:44px;height:44px;border-radius:12px;background:#092f40;display:grid;place-items:center;color:#5eeaff;font-weight:bold;margin-bottom:12px}.name{font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:12px;color:#7896a5;margin-top:7px}
+.fab{position:fixed;right:20px;bottom:22px;width:58px;height:58px;border:0;border-radius:50%;background:#43e1ff;color:#031018;font-size:30px;box-shadow:0 8px 28px #0008;z-index:8}
+.menu{position:fixed;right:20px;bottom:91px;background:#0b202e;border:1px solid #1d485b;border-radius:15px;padding:7px;width:190px;display:none;z-index:9;box-shadow:0 10px 35px #0009}.menu.show{display:block}
+button.item{width:100%;border:0;background:transparent;color:#e9fbff;text-align:left;padding:12px;border-radius:10px;font-size:14px}.item:hover{background:#123446}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.modal.show{display:flex}
+.box{width:min(700px,100%);max-height:90vh;overflow:auto;background:#081824;border:1px solid #1e5268;border-radius:20px;padding:20px}
+.box h2{margin-top:0;color:#5eeaff}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#8faebb;margin-bottom:6px}.input,.code{width:100%;background:#051019;border:1px solid #21485a;color:white;border-radius:10px;padding:12px;outline:none}.code{min-height:300px;resize:vertical;font-family:monospace;line-height:1.45}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}.btn{border:1px solid #27566a;background:#0d2938;color:#dffaff;padding:11px 15px;border-radius:10px}.primary{background:#38dfff;color:#031018;border-color:#38dfff;font-weight:bold}.danger{border-color:#7a3030;color:#ffb5b5}
+.viewer{padding:0}.viewer iframe{width:100%;height:65vh;border:0;background:white;border-radius:12px}.viewerbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}.viewerbar h2{flex:1;margin:0;font-size:18px}
+.toast{position:fixed;left:50%;bottom:25px;transform:translateX(-50%);background:#0c2837;border:1px solid #286278;padding:11px 15px;border-radius:12px;display:none;z-index:30}.toast.show{display:block}
+footer{text-align:center;color:#5eeaff;font-size:13px;letter-spacing:1px;padding:20px}
+@media(max-width:450px){h1{font-size:25px}.grid{grid-template-columns:1fr 1fr}.card{min-height:125px}}
+</style>
+</head>
+<body>
+<header><h1>HTML STORAGE</h1><small>BY MR ROYALEFLARE</small></header>
+<main>
+<div class="toolbar"><input id="search" class="search" placeholder="Search stored files..."></div>
+<div id="list"></div>
+<footer>SUBSCRIBE TO MR ROYALEFLARE ON YOUTUBE</footer>
+</main>
+
+<button id="fab" class="fab">+</button>
+<div id="menu" class="menu">
+<button class="item" id="uploadBtn">Upload file</button>
+<button class="item" id="codeBtn">By code</button>
+<button class="item" id="runnerBtn">Our Code Runner</button>
+<button class="item" id="youtubeBtn">YouTube</button>
+<button class="item" id="settingsBtn">Settings</button>
+</div>
+<input id="fileInput" type="file" accept=".html,text/html" hidden>
+
+<div id="modal" class="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY="MR_ROYALEFLARE_HTML_STORAGE_V1";
+let files=JSON.parse(localStorage.getItem(KEY)||"[]");
+const $=id=>document.getElementById(id);
+function persist(){localStorage.setItem(KEY,JSON.stringify(files));}
+function toast(t){$("toast").textContent=t;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2200)}
+function safeName(n){return (n||"untitled").replace(/\.html?$/i,"")+".html"}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function render(){
+ let q=$("search").value.toLowerCase();
+ let a=files.filter(x=>x.name.toLowerCase().includes(q));
+ if(!a.length){$("list").innerHTML='<div class="empty">No stored files yet.<br><br>Tap <b>+</b> to add an HTML file.</div>';return}
+ $("list").innerHTML='<div class="grid">'+a.map(x=>`<div class="card" data-id="${x.id}">
+ <div class="icon">&lt;/&gt;</div><div class="name">${esc(x.name)}</div>
+ <div class="meta">${new Date(x.updated).toLocaleString()}</div></div>`).join("")+'</div>';
+ document.querySelectorAll(".card").forEach(c=>c.onclick=()=>openFile(c.dataset.id));
+}
+function closeModal(){$("modal").classList.remove("show")}
+function showBox(content){$("modalBox").innerHTML=content;$("modal").classList.add("show")}
+$("fab").onclick=()=>{$("menu").classList.toggle("show")};
+$("uploadBtn").onclick=()=>{$("menu").classList.remove("show");$("fileInput").click()};
+$("codeBtn").onclick=()=>{ $("menu").classList.remove("show"); showBox(`
+<h2>Save by code</h2>
+<div class="field"><label>File name</label><input id="codeName" class="input" placeholder="my-page.html"></div>
+<div class="field"><label>HTML code</label><textarea id="codeArea" class="code" spellcheck="false" placeholder="<!DOCTYPE html>"></textarea></div>
+<div class="actions"><button class="btn" onclick="runCodePreview()">Run</button><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCode()">Save HTML</button></div>`)};
+window.saveCode=()=>{let name=safeName($("codeName").value.trim()||"untitled.html"),code=$("codeArea").value;
+ if(!code.trim()){toast("Enter some HTML code");return}files.unshift({id:crypto.randomUUID(),name,code,updated:Date.now()});persist();closeModal();render();toast("HTML file saved in app storage")};
+$("runnerBtn").onclick=()=>{ $("menu").classList.remove("show"); window.open("https://royaleflare.github.io/ROYALEFLARE-CODE-RUNNER-V-1.9/","_blank"); };
+$("youtubeBtn").onclick=()=>{ $("menu").classList.remove("show"); window.open("https://youtube.com/@mrroyaleflare?si=SzarfBWC4eOHtVht","_blank"); };
+window.runCodePreview=()=>{let code=$("codeArea").value;if(!code.trim()){toast("Enter some HTML code first");return}let blob=new Blob([code],{type:"text/html"}),url=URL.createObjectURL(blob);let w=window.open(url,"_blank");if(!w){toast("Browser blocked the preview");}else{setTimeout(()=>URL.revokeObjectURL(url),60000);}};
+$("settingsBtn").onclick=()=>{ $("menu").classList.remove("show");showBox(`
+<h2>Settings</h2><p style="color:#91aab5">Your stored HTML files are kept in this app's browser storage (localStorage). They are not automatically saved as files in your phone's Gallery or Files app.</p>
+<div class="actions"><button class="btn" onclick="closeModal()">Close</button><button class="btn danger" onclick="clearAll()">Clear app data</button></div>`)};
+window.clearAll=()=>{if(confirm("Delete all HTML files stored in this app? This will not delete files already downloaded to your phone.")){files=[];persist();closeModal();render();toast("App storage cleared")}};
+$("fileInput").onchange=async e=>{let f=e.target.files[0];if(!f)return;let code=await f.text();showBox(`
+<h2>Store HTML file</h2><div class="field"><label>File name</label><input id="uploadName" class="input" value="${esc(safeName(f.name))}"></div>
+<p style="color:#91aab5">${esc(f.name)} • ${Math.round(f.size/1024)} KB</p>
+<div class="actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveUpload()">Save</button></div>`);
+ window.pendingUpload=code;$("fileInput").value=""};
+window.saveUpload=()=>{let name=safeName($("uploadName").value.trim()||"untitled.html");files.unshift({id:crypto.randomUUID(),name,code:window.pendingUpload,updated:Date.now()});persist();closeModal();render();toast("HTML file stored")};
+function get(id){return files.find(x=>x.id===id)}
+function openFile(id){let f=get(id);if(!f)return;let blob=new Blob([f.code],{type:"text/html"}),url=URL.createObjectURL(blob);
+ showBox(`<div class="viewer"><div class="viewerbar"><h2>${esc(f.name)}</h2><button class="btn" onclick="openInBrowser('${f.id}')">Open in browser</button><button class="btn" onclick="downloadFile('${f.id}')">Download</button><button class="btn danger" onclick="deleteFile('${f.id}')">Delete</button><button class="btn" onclick="closeModal()">Close</button></div><iframe src="${url}" sandbox="allow-scripts allow-forms"></iframe></div>`);
+ $("modal").dataset.url=url;
+}
+window.downloadFile=id=>{let f=get(id);if(!f)return;let blob=new Blob([f.code],{type:"text/html"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Download started")};
+window.openInBrowser=id=>{let f=get(id);if(!f)return;let blob=new Blob([f.code],{type:"text/html"}),url=URL.createObjectURL(blob);let w=window.open(url,"_blank");if(!w){toast("Browser blocked the new tab. Use Download instead.");}else{setTimeout(()=>URL.revokeObjectURL(url),60000);}};
+window.deleteFile=id=>{let f=get(id);if(!f)return;if(confirm("Delete this file from HTML STORAGE?\n\nAny copy already downloaded to your phone will NOT be deleted.")){files=files.filter(x=>x.id!==id);persist();let u=$("modal").dataset.url;if(u)URL.revokeObjectURL(u);closeModal();render();toast("File deleted from app storage");}};
+
+$("search").oninput=render;
+$("modal").onclick=e=>{if(e.target===$("modal")){let u=$("modal").dataset.url;if(u)URL.revokeObjectURL(u);closeModal()}};
+render();
+</script>
+</body>
+</html>
